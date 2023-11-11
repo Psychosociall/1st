@@ -116,3 +116,28 @@ func tmpDatadirWithKeystore(t *testing.T) string {
 	}
 	return datadir
 }
+
+func TestWalletImport(t *testing.T) {
+	quai := runQuai(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
+	defer quai.ExpectExit()
+	quai.Expect(`
+!! Unsupported terminal, password will be echoed.
+Password: {{.InputLine "foo"}}
+Address: {d4584b5f6229b7be90727b0fc8c6b91bb427821f}
+`)
+
+	files, err := ioutil.ReadDir(filepath.Join(quai.Datadir, "keystore"))
+	if len(files) != 1 {
+		t.Errorf("expected one key file in keystore directory, found %d files (error: %v)", len(files), err)
+	}
+}
+
+func TestWalletImportBadPassword(t *testing.T) {
+	quai := runQuai(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
+	defer quai.ExpectExit()
+	quai.Expect(`
+!! Unsupported terminal, password will be echoed.
+Password: {{.InputLine "wrong"}}
+Fatal: could not decrypt key with given password
+`)
+}
